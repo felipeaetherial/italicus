@@ -6,7 +6,6 @@ import {
 	BarChart3,
 	BookOpen,
 	Box,
-	ChefHat,
 	ClipboardList,
 	DollarSign,
 	Factory,
@@ -20,6 +19,7 @@ import {
 	Wheat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/shared/logo";
 
 const navGroups = [
 	{
@@ -69,17 +69,16 @@ export function AdminSidebar() {
 	const pathname = usePathname();
 
 	return (
-		<aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r bg-sidebar lg:block">
-			<div className="flex h-16 items-center border-b px-6">
-				<Link href="/dashboard" className="flex items-center gap-2">
-					<ChefHat className="h-6 w-6" />
-					<span className="text-lg font-bold">PaoTech</span>
+		<aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-sidebar-border bg-sidebar lg:block">
+			<div className="flex h-16 items-center justify-center border-b border-sidebar-border px-6">
+				<Link href="/dashboard">
+					<Logo size="sm" variant="dark" />
 				</Link>
 			</div>
 			<nav className="space-y-1 overflow-y-auto p-4" style={{ height: "calc(100vh - 4rem)" }}>
 				{navGroups.map((group) => (
 					<div key={group.label} className="py-2">
-						<p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+						<p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
 							{group.label}
 						</p>
 						{group.items.map((item) => {
@@ -92,8 +91,8 @@ export function AdminSidebar() {
 									className={cn(
 										"flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
 										isActive
-											? "bg-sidebar-accent text-sidebar-accent-foreground"
-											: "text-sidebar-foreground hover:bg-sidebar-accent/50",
+											? "bg-sidebar-accent text-gold"
+											: "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 									)}
 								>
 									<item.icon className="h-4 w-4" />

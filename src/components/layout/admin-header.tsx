@@ -1,10 +1,11 @@
 "use client";
 
-import { ChefHat, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Logo, LogoIcon } from "@/components/shared/logo";
 import {
 	BarChart3,
 	BookOpen,
@@ -55,9 +56,8 @@ export function AdminHeader() {
 				>
 					<Menu className="h-5 w-5" />
 				</button>
-				<div className="flex items-center gap-2 lg:hidden">
-					<ChefHat className="h-5 w-5" />
-					<span className="font-bold">PaoTech</span>
+				<div className="lg:hidden">
+					<LogoIcon variant="light" />
 				</div>
 				<div className="ml-auto flex items-center gap-4">
 					<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
@@ -70,15 +70,14 @@ export function AdminHeader() {
 			{mobileMenuOpen && (
 				<div className="fixed inset-0 z-40 lg:hidden">
 					<div
-						className="fixed inset-0 bg-black/50"
+						className="fixed inset-0 bg-black/60"
 						onClick={() => setMobileMenuOpen(false)}
 						onKeyDown={() => {}}
 						role="presentation"
 					/>
-					<div className="fixed inset-y-0 left-0 w-64 bg-background p-4 shadow-lg">
-						<div className="mb-4 flex items-center gap-2 px-3">
-							<ChefHat className="h-6 w-6" />
-							<span className="text-lg font-bold">PaoTech</span>
+					<div className="fixed inset-y-0 left-0 w-64 bg-sidebar p-4 shadow-lg">
+						<div className="mb-6 flex items-center justify-center px-3 py-2">
+							<Logo size="sm" variant="dark" />
 						</div>
 						<nav className="space-y-1">
 							{allNavItems.map((item) => {
@@ -92,8 +91,8 @@ export function AdminHeader() {
 										className={cn(
 											"flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
 											isActive
-												? "bg-accent text-accent-foreground"
-												: "hover:bg-accent/50",
+												? "bg-sidebar-accent text-gold"
+												: "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 										)}
 									>
 										<item.icon className="h-4 w-4" />

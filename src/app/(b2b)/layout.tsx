@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChefHat, ClipboardList, DollarSign, ShoppingBag } from "lucide-react";
+import { ClipboardList, DollarSign, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/shared/logo";
 
 const b2bNav = [
 	{ title: "Catálogo", href: "/catalogo", icon: ShoppingBag },
@@ -21,10 +22,9 @@ export default function B2bLayout({
 	return (
 		<div className="min-h-screen bg-background">
 			{/* Header */}
-			<header className="sticky top-0 z-20 border-b bg-background px-4 py-3">
-				<div className="mx-auto flex max-w-lg items-center justify-center gap-2">
-					<ChefHat className="h-5 w-5" />
-					<span className="font-bold">PaoTech</span>
+			<header className="sticky top-0 z-20 border-b bg-primary px-4 py-3">
+				<div className="mx-auto flex max-w-lg items-center justify-center">
+					<Logo size="sm" variant="dark" />
 				</div>
 			</header>
 
@@ -44,7 +44,7 @@ export default function B2bLayout({
 								className={cn(
 									"flex flex-1 flex-col items-center gap-1 py-3 text-xs transition-colors",
 									isActive
-										? "text-primary font-medium"
+										? "text-gold font-medium"
 										: "text-muted-foreground",
 								)}
 							>
