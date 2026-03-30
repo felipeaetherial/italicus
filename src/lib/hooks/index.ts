@@ -14,3 +14,8 @@ export { useCashFlow } from "./use-cash-flow";
 export { useWasteEntries } from "./use-waste-entries";
 export { useDashboard } from "./use-dashboard";
 export { useMonthlyReport } from "./use-monthly-report";
+export { useB2bCatalog } from "./use-b2b-catalog";
+export { useB2bOrders } from "./use-b2b-orders";
+export { useB2bFinancial } from "./use-b2b-financial";
+export { useCart } from "./use-cart";
+export type { CartItem } from "./use-cart";

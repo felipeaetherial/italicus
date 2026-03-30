@@ -12,31 +12,34 @@ import { getAuthenticatedUser } from "./utils";
 import { calculateDueDate } from "./db";
 
 // ---------------------------------------------------------------------------
-// B2B Catalog (public - takes tenantSlug instead of auth)
+// B2B Catalog (auth-based)
 // ---------------------------------------------------------------------------
 
-export async function getB2bCatalog(
-  tenantSlug: string,
-): Promise<ActionResult<Record<string, unknown[]>>> {
+export async function getB2bCatalog(): Promise<
+  ActionResult<{
+    products: Record<string, Array<{ id: string } & Record<string, unknown>>>;
+    tenantName: string;
+  }>
+> {
   try {
-    const tenantsSnap = await adminDb
-      .collection("tenants")
-      .where("slug", "==", tenantSlug)
-      .limit(1)
-      .get();
+    const { tenantId } = await getAuthenticatedUser();
 
-    if (tenantsSnap.empty) {
-      return actionError("Fábrica não encontrada");
+    // Fetch tenant doc to get the name
+    const tenantDoc = await adminDb.collection("tenants").doc(tenantId).get();
+    if (!tenantDoc.exists) {
+      return actionError("Tenant não encontrado");
     }
-
-    const tenantId = tenantsSnap.docs[0].id;
+    const tenantName = (tenantDoc.data()?.name as string) || "";
 
     const productsSnap = await tenantCollection(tenantId, "products")
       .where("isActive", "==", true)
       .where("isB2bVisible", "==", true)
       .get();
 
-    const grouped: Record<string, unknown[]> = {};
+    const grouped: Record<
+      string,
+      Array<{ id: string } & Record<string, unknown>>
+    > = {};
 
     for (const doc of productsSnap.docs) {
       const data = doc.data();
@@ -49,7 +52,16 @@ export async function getB2bCatalog(
       grouped[category].push({ id: doc.id, ...data });
     }
 
-    return actionResponse(grouped);
+    // Sort products by name within each category
+    for (const category of Object.keys(grouped)) {
+      grouped[category].sort((a, b) => {
+        const nameA = ((a.name as string) || "").toLowerCase();
+        const nameB = ((b.name as string) || "").toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    }
+
+    return actionResponse({ products: grouped, tenantName });
   } catch (err) {
     return actionError(
       err instanceof Error ? err.message : "Erro ao buscar catálogo B2B",
@@ -62,14 +74,14 @@ export async function getB2bCatalog(
 // ---------------------------------------------------------------------------
 
 export async function createB2bOrder(input: {
-  tenantId: string;
   items: {
     productId: string;
     productName: string;
     quantity: number;
     unitPrice: number;
-    total: number;
+    unit: string;
   }[];
+  deliveryDate: string;
   notes?: string;
 }): Promise<ActionResult<{ id: string }>> {
   try {
@@ -79,8 +91,15 @@ export async function createB2bOrder(input: {
       return actionError("Acesso restrito a clientes B2B");
     }
 
-    if (tenantId !== input.tenantId) {
-      return actionError("Acesso não autorizado a este tenant");
+    // Validate deliveryDate >= tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+    if (input.deliveryDate < tomorrowStr) {
+      return actionError(
+        "A data de entrega deve ser a partir de amanhã",
+      );
     }
 
     const now = nowISO();
@@ -100,13 +119,20 @@ export async function createB2bOrder(input: {
     const customerId = customerDoc.id;
     const customerName = customerData.name as string;
 
-    // Calculate total amount
-    const totalAmount = input.items.reduce((sum, item) => sum + item.total, 0);
+    // Add total to each item
+    const itemsWithTotal = input.items.map((item) => ({
+      ...item,
+      total: item.quantity * item.unitPrice,
+    }));
 
-    // Production date = tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const productionDate = tomorrow.toISOString().split("T")[0];
+    // Calculate total amount
+    const totalAmount = itemsWithTotal.reduce(
+      (sum, item) => sum + item.total,
+      0,
+    );
+
+    // Use deliveryDate as productionDate
+    const productionDate = input.deliveryDate;
 
     // Calculate due date based on customer name rules
     const dueDate = calculateDueDate(customerName);
@@ -120,7 +146,7 @@ export async function createB2bOrder(input: {
       id: saleRef.id,
       customerId,
       customerName,
-      items: input.items,
+      items: itemsWithTotal,
       totalAmount,
       paymentMethod: "fiado",
       productionDate,
@@ -141,7 +167,7 @@ export async function createB2bOrder(input: {
       customerName,
       productionDate,
       dueDate,
-      items: input.items,
+      items: itemsWithTotal,
       totalAmount,
       paymentMethod: "fiado",
       status: "pendente",
@@ -179,10 +205,81 @@ export async function createB2bOrder(input: {
 }
 
 // ---------------------------------------------------------------------------
+// Repeat Order
+// ---------------------------------------------------------------------------
+
+export async function repeatOrder(
+  orderId: string,
+): Promise<
+  ActionResult<
+    Array<{
+      productId: string;
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+      unit: string;
+    }>
+  >
+> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+
+    const orderDoc = await tenantCollection(tenantId, "orders")
+      .doc(orderId)
+      .get();
+
+    if (!orderDoc.exists) {
+      return actionError("Pedido não encontrado");
+    }
+
+    const orderData = orderDoc.data()!;
+    const items = (orderData.items as Array<Record<string, unknown>>) || [];
+
+    const validItems: Array<{
+      productId: string;
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+      unit: string;
+    }> = [];
+
+    for (const item of items) {
+      const productId = item.productId as string;
+      if (!productId) continue;
+
+      const productDoc = await tenantCollection(tenantId, "products")
+        .doc(productId)
+        .get();
+
+      if (!productDoc.exists) continue;
+
+      const productData = productDoc.data()!;
+      if (!productData.isActive || !productData.isB2bVisible) continue;
+
+      validItems.push({
+        productId,
+        productName: (item.productName as string) || (productData.name as string) || "",
+        quantity: (item.quantity as number) || 1,
+        unitPrice: (productData.sellPrice as number) || (item.unitPrice as number) || 0,
+        unit: (item.unit as string) || (productData.unit as string) || "un",
+      });
+    }
+
+    return actionResponse(validItems);
+  } catch (err) {
+    return actionError(
+      err instanceof Error ? err.message : "Erro ao repetir pedido",
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // My B2B Orders
 // ---------------------------------------------------------------------------
 
-export async function getB2bMyOrders(): Promise<ActionResult<unknown[]>> {
+export async function getB2bMyOrders(
+  filters?: { status?: string },
+): Promise<ActionResult<unknown[]>> {
   try {
     const { userId, tenantId } = await getAuthenticatedUser();
 
@@ -198,10 +295,16 @@ export async function getB2bMyOrders(): Promise<ActionResult<unknown[]>> {
 
     const customerId = customersSnap.docs[0].id;
 
-    const ordersSnap = await tenantCollection(tenantId, "orders")
-      .where("customerId", "==", customerId)
-      .orderBy("createdAt", "desc")
-      .get();
+    let query: FirebaseFirestore.Query = tenantCollection(tenantId, "orders")
+      .where("customerId", "==", customerId);
+
+    if (filters?.status) {
+      query = query.where("status", "==", filters.status);
+    }
+
+    query = query.orderBy("createdAt", "desc");
+
+    const ordersSnap = await query.get();
 
     const orders = ordersSnap.docs.map((doc) => ({
       id: doc.id,
@@ -220,7 +323,14 @@ export async function getB2bMyOrders(): Promise<ActionResult<unknown[]>> {
 // B2B Financial
 // ---------------------------------------------------------------------------
 
-export async function getB2bFinancial(): Promise<ActionResult<unknown[]>> {
+interface B2bFinancialData {
+  receivables: Array<{ id: string } & Record<string, unknown>>;
+  totalOpen: number;
+  totalOverdue: number;
+  lastPaymentDate: string | null;
+}
+
+export async function getB2bFinancial(): Promise<ActionResult<B2bFinancialData>> {
   try {
     const { userId, tenantId } = await getAuthenticatedUser();
 
@@ -240,12 +350,44 @@ export async function getB2bFinancial(): Promise<ActionResult<unknown[]>> {
       .where("customerId", "==", customerId)
       .get();
 
-    const receivables = arSnap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const receivables: Array<{ id: string } & Record<string, unknown>> =
+      arSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-    return actionResponse(receivables);
+    const today = new Date().toISOString().split("T")[0];
+
+    let totalOpen = 0;
+    let totalOverdue = 0;
+    let lastPaymentDate: string | null = null;
+
+    for (const r of receivables) {
+      const status = r.status as string;
+      const amount = (r.amount as number) || 0;
+
+      if (status === "pendente") {
+        totalOpen += amount;
+        const dueDate = r.dueDate as string;
+        if (dueDate && dueDate < today) {
+          totalOverdue += amount;
+        }
+      }
+
+      if (status === "recebido") {
+        const receiptDate = r.receiptDate as string;
+        if (receiptDate && (!lastPaymentDate || receiptDate > lastPaymentDate)) {
+          lastPaymentDate = receiptDate;
+        }
+      }
+    }
+
+    return actionResponse({
+      receivables,
+      totalOpen,
+      totalOverdue,
+      lastPaymentDate,
+    });
   } catch (err) {
     return actionError(
       err instanceof Error ? err.message : "Erro ao buscar financeiro B2B",
