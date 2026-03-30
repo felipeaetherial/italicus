@@ -53,6 +53,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 
+	const DEMO_USER: AuthUser = {
+		userId: "demo-user",
+		email: "demo@italicus.com.br",
+		displayName: "Demo User",
+		role: "owner",
+		tenantId: "demo-tenant",
+		tenantRole: "admin",
+	};
+
 	const refreshUser = useCallback(async () => {
 		try {
 			const res = await fetch("/api/auth/verify");
@@ -60,10 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			if (data.authenticated && data.user) {
 				setUser(data.user);
 			} else {
-				setUser(null);
+				// Auth disabled for testing — use demo user
+				setUser(DEMO_USER);
 			}
 		} catch {
-			setUser(null);
+			// Auth not configured — use demo user
+			setUser(DEMO_USER);
 		}
 	}, []);
 
