@@ -32,6 +32,11 @@ export async function completeOrder(
 			updatedAt: nowISO(),
 		});
 
+		try {
+			const { sendOrderNotification } = await import("./notifications");
+			await sendOrderNotification(tenantId, "delivered", orderId);
+		} catch { /* non-critical */ }
+
 		return actionResponse({ id: orderId });
 	} catch (error) {
 		return actionError(
@@ -143,6 +148,13 @@ export async function updateOrderStatus(
 			status,
 			updatedAt: nowISO(),
 		});
+
+		try {
+			if (status === "confirmado") {
+				const { sendOrderNotification } = await import("./notifications");
+				await sendOrderNotification(tenantId, "confirmed", orderId);
+			}
+		} catch { /* non-critical */ }
 
 		return actionResponse({ id: orderId });
 	} catch (error) {

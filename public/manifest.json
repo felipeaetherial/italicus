@@ -1,0 +1,15 @@
+{
+  "name": "PaoTech - Gestão para Padarias",
+  "short_name": "PaoTech",
+  "start_url": "/catalogo",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#D4AF37",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

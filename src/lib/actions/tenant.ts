@@ -410,3 +410,83 @@ export async function processInvite(
 		return actionError(e instanceof Error ? e.message : "Erro ao processar convite");
 	}
 }
+
+/**
+ * Update WhatsApp notification settings for the current tenant.
+ */
+export async function updateWhatsAppSettings(settings: {
+	enabled: boolean;
+	provider?: string;
+	instanceUrl?: string;
+	apiKey?: string;
+	adminPhone?: string;
+	notifications?: Record<string, boolean>;
+}): Promise<ActionResult<{ updated: boolean }>> {
+	try {
+		const user = await getAuthenticatedUser();
+		if (user.role !== "owner" && user.tenantRole !== "admin") {
+			return actionError("Apenas administradores podem alterar configurações");
+		}
+
+		const tenantId = user.tenantId;
+		const tenantRef = adminDb.collection("tenants").doc(tenantId);
+
+		await tenantRef.update({
+			"settings.whatsapp": {
+				enabled: settings.enabled,
+				provider: settings.provider || "",
+				instanceUrl: settings.instanceUrl || "",
+				apiKey: settings.apiKey || "",
+				adminPhone: settings.adminPhone || "",
+				notifications: settings.notifications || {},
+			},
+			updatedAt: nowISO(),
+		});
+
+		return actionResponse({ updated: true });
+	} catch (e) {
+		return actionError(
+			e instanceof Error ? e.message : "Erro ao salvar configurações do WhatsApp",
+		);
+	}
+}
+
+/**
+ * Get WhatsApp settings for the current tenant.
+ */
+export async function getWhatsAppSettings(): Promise<
+	ActionResult<{
+		enabled: boolean;
+		provider: string;
+		instanceUrl: string;
+		apiKey: string;
+		adminPhone: string;
+		notifications: Record<string, boolean>;
+	}>
+> {
+	try {
+		const user = await getAuthenticatedUser();
+		const tenantRef = adminDb.collection("tenants").doc(user.tenantId);
+		const tenantDoc = await tenantRef.get();
+
+		if (!tenantDoc.exists) {
+			return actionError("Tenant não encontrado");
+		}
+
+		const data = tenantDoc.data()!;
+		const whatsapp = data.settings?.whatsapp || {};
+
+		return actionResponse({
+			enabled: whatsapp.enabled || false,
+			provider: whatsapp.provider || "",
+			instanceUrl: whatsapp.instanceUrl || "",
+			apiKey: whatsapp.apiKey || "",
+			adminPhone: whatsapp.adminPhone || "",
+			notifications: whatsapp.notifications || {},
+		});
+	} catch (e) {
+		return actionError(
+			e instanceof Error ? e.message : "Erro ao carregar configurações do WhatsApp",
+		);
+	}
+}

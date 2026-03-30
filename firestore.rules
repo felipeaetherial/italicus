@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: each user can only read/write their own doc
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Tenants: owner can read/write, staff can read
+    match /tenants/{tenantId} {
+      allow read: if isTeamMember(tenantId) || isB2bClient(tenantId);
+      allow write: if isOwner(tenantId);
+
+      // Default rule for all tenant subcollections: admin team only
+      match /{collection}/{docId} {
+        allow read, write: if isTeamMember(tenantId);
+      }
+
+      // B2B clients: read-only access to specific collections
+      match /products/{productId} {
+        allow read: if isTeamMember(tenantId) ||
+          (isB2bClient(tenantId) && resource.data.isActive == true && resource.data.isB2bVisible == true);
+      }
+
+      match /orders/{orderId} {
+        allow read: if isTeamMember(tenantId) ||
+          (isB2bClient(tenantId) && resource.data.customerId == getB2bCustomerId());
+        allow write: if isTeamMember(tenantId);
+      }
+
+      match /sales/{saleId} {
+        allow read: if isTeamMember(tenantId) ||
+          (isB2bClient(tenantId) && resource.data.customerId == getB2bCustomerId());
+        allow write: if isTeamMember(tenantId);
+      }
+
+      match /accountsReceivable/{docId} {
+        allow read: if isTeamMember(tenantId) ||
+          (isB2bClient(tenantId) && resource.data.customerId == getB2bCustomerId());
+        allow write: if isTeamMember(tenantId);
+      }
+
+      // Invites: readable by the invited user
+      match /invites/{inviteId} {
+        allow read: if isTeamMember(tenantId);
+        allow write: if isOwner(tenantId);
+      }
+    }
+
+    // Helper functions
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isTeamMember(tenantId) {
+      return request.auth != null &&
+        getUserData().tenantId == tenantId &&
+        getUserData().role in ["owner", "staff"];
+    }
+
+    function isOwner(tenantId) {
+      return request.auth != null &&
+        getUserData().tenantId == tenantId &&
+        getUserData().role == "owner";
+    }
+
+    function isB2bClient(tenantId) {
+      return request.auth != null &&
+        getUserData().tenantId == tenantId &&
+        getUserData().role == "b2b_client";
+    }
+
+    function getB2bCustomerId() {
+      return getUserData().b2bCustomerId;
+    }
+  }
+}

@@ -196,6 +196,11 @@ export async function createB2bOrder(input: {
 
     await batch.commit();
 
+    try {
+      const { notifyAdminNewB2bOrder } = await import("./notifications");
+      await notifyAdminNewB2bOrder(tenantId, orderRef.id);
+    } catch { /* non-critical */ }
+
     return actionResponse({ id: saleRef.id });
   } catch (err) {
     return actionError(
