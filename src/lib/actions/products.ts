@@ -22,7 +22,7 @@ export async function createProduct(
   try {
     const parsed = CreateProductSchema.safeParse(input);
     if (!parsed.success) {
-      return actionError(parsed.error.errors.map((e) => e.message).join(", "));
+      return actionError(parsed.error.issues.map((e) => e.message).join(", "));
     }
 
     const { tenantId } = await getAuthenticatedUser();
@@ -106,7 +106,7 @@ export async function createTechnicalSheet(
   try {
     const parsed = CreateTechnicalSheetSchema.safeParse(input);
     if (!parsed.success) {
-      return actionError(parsed.error.errors.map((e) => e.message).join(", "));
+      return actionError(parsed.error.issues.map((e) => e.message).join(", "));
     }
 
     const { tenantId } = await getAuthenticatedUser();
