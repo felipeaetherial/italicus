@@ -1,7 +1,7 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase/admin";
-import { tenantCollection } from "./utils";
+import { tenantCollection } from "./db";
 
 /**
  * Debit ingredients from stock based on sale items.

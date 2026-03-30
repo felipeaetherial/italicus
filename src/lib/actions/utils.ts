@@ -2,28 +2,11 @@
 
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-
-export type ActionResult<T> =
-	| { success: true; data: T }
-	| { success: false; error: string };
-
-export function actionResponse<T>(data: T): ActionResult<T> {
-	return { success: true, data };
-}
-
-export function actionError<T = never>(message: string): ActionResult<T> {
-	return { success: false, error: message };
-}
-
-export interface AuthenticatedUser {
-	userId: string;
-	tenantId: string;
-	role: "owner" | "staff" | "b2b_client";
-}
+import type { AuthenticatedUser } from "./db";
 
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser> {
 	const cookieStore = await cookies();
-	const session = cookieStore.get("session");
+	const session = cookieStore.get("__session");
 
 	if (!session?.value) {
 		throw new Error("Não autenticado");
@@ -39,19 +22,10 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser> {
 	const userData = userDoc.data()!;
 	return {
 		userId: decodedToken.uid,
+		email: decodedToken.email || "",
 		tenantId: userData.tenantId,
 		role: userData.role,
+		tenantRole: userData.tenantRole,
+		displayName: userData.displayName,
 	};
-}
-
-export function nowISO(): string {
-	return new Date().toISOString();
-}
-
-export function tenantRef(tenantId: string) {
-	return adminDb.collection("tenants").doc(tenantId);
-}
-
-export function tenantCollection(tenantId: string, collectionName: string) {
-	return tenantRef(tenantId).collection(collectionName);
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Logo, LogoIcon } from "@/components/shared/logo";
+import { UserMenu } from "@/components/layout/user-menu";
 import {
 	BarChart3,
 	BookOpen,
@@ -60,9 +61,7 @@ export function AdminHeader() {
 					<LogoIcon variant="light" />
 				</div>
 				<div className="ml-auto flex items-center gap-4">
-					<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-						U
-					</div>
+					<UserMenu variant="light" />
 				</div>
 			</header>
 

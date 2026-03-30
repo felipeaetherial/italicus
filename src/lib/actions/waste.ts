@@ -6,10 +6,10 @@ import {
   type ActionResult,
   actionResponse,
   actionError,
-  getAuthenticatedUser,
   nowISO,
   tenantCollection,
-} from "./utils";
+} from "./db";
+import { getAuthenticatedUser } from "./utils";
 
 // ---------------------------------------------------------------------------
 // createWasteEntry

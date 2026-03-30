@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/lib/providers/auth-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,8 +22,10 @@ export default function RootLayout({
 			className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
 		>
 			<body className="min-h-full flex flex-col">
-				{children}
-				<Toaster richColors position="top-right" />
+				<AuthProvider>
+					{children}
+					<Toaster richColors position="top-right" />
+				</AuthProvider>
 			</body>
 		</html>
 	);

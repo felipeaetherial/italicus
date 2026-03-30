@@ -5,10 +5,10 @@ import {
 	type ActionResult,
 	actionResponse,
 	actionError,
-	getAuthenticatedUser,
 	nowISO,
 	tenantCollection,
-} from "./utils";
+} from "./db";
+import { getAuthenticatedUser } from "./utils";
 import { debitIngredients } from "./helpers";
 
 export async function completeOrder(
