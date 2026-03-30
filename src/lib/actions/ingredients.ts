@@ -10,7 +10,7 @@ import {
   tenantCollection,
 } from "./db";
 import { getAuthenticatedUser } from "./utils";
-import { calculateSheetCost, calculateProfitMargin } from "./helpers";
+import { calculateSheetCost, calculateProfitMargin } from "./db";
 
 export async function createIngredient(
   input: unknown,

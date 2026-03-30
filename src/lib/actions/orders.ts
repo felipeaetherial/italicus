@@ -192,3 +192,39 @@ export async function deleteOrder(
 		);
 	}
 }
+
+// ---------------------------------------------------------------------------
+// listOrders
+// ---------------------------------------------------------------------------
+export async function listOrders(
+	filters?: {
+		status?: string;
+		productionDate?: string;
+	},
+): Promise<ActionResult<Array<{ id: string } & Record<string, unknown>>>> {
+	try {
+		const { tenantId } = await getAuthenticatedUser();
+		let query: FirebaseFirestore.Query = tenantCollection(tenantId, "orders");
+
+		if (filters?.status) {
+			query = query.where("status", "==", filters.status);
+		}
+		if (filters?.productionDate) {
+			query = query.where("productionDate", "==", filters.productionDate);
+		}
+
+		query = query.orderBy("createdAt", "desc").limit(500);
+
+		const snap = await query.get();
+		const orders = snap.docs.map((doc) => ({
+			id: doc.id,
+			...doc.data(),
+		}));
+
+		return actionResponse(orders);
+	} catch (error) {
+		return actionError(
+			error instanceof Error ? error.message : "Erro ao listar pedidos",
+		);
+	}
+}

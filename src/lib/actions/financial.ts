@@ -416,6 +416,129 @@ export async function createCashFlowEntry(
 }
 
 // ---------------------------------------------------------------------------
+// listAccountsPayable
+// ---------------------------------------------------------------------------
+export async function listAccountsPayable(
+  filters?: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+): Promise<ActionResult<Array<{ id: string } & Record<string, unknown>>>> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    let query: FirebaseFirestore.Query = tenantCollection(
+      tenantId,
+      "accountsPayable",
+    );
+
+    if (filters?.status) {
+      query = query.where("status", "==", filters.status);
+    }
+    if (filters?.startDate) {
+      query = query.where("dueDate", ">=", filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.where("dueDate", "<=", filters.endDate);
+    }
+
+    query = query.orderBy("dueDate", "desc").limit(500);
+
+    const snap = await query.get();
+    const items = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(items);
+  } catch (e) {
+    return actionError(e instanceof Error ? e.message : "Erro inesperado");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// listAccountsReceivable
+// ---------------------------------------------------------------------------
+export async function listAccountsReceivable(
+  filters?: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+): Promise<ActionResult<Array<{ id: string } & Record<string, unknown>>>> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    let query: FirebaseFirestore.Query = tenantCollection(
+      tenantId,
+      "accountsReceivable",
+    );
+
+    if (filters?.status) {
+      query = query.where("status", "==", filters.status);
+    }
+    if (filters?.startDate) {
+      query = query.where("dueDate", ">=", filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.where("dueDate", "<=", filters.endDate);
+    }
+
+    query = query.orderBy("dueDate", "desc").limit(500);
+
+    const snap = await query.get();
+    const items = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(items);
+  } catch (e) {
+    return actionError(e instanceof Error ? e.message : "Erro inesperado");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// listCashFlow
+// ---------------------------------------------------------------------------
+export async function listCashFlow(
+  filters?: {
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+): Promise<ActionResult<Array<{ id: string } & Record<string, unknown>>>> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    let query: FirebaseFirestore.Query = tenantCollection(
+      tenantId,
+      "cashFlow",
+    );
+
+    if (filters?.type) {
+      query = query.where("type", "==", filters.type);
+    }
+    if (filters?.startDate) {
+      query = query.where("date", ">=", filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.where("date", "<=", filters.endDate);
+    }
+
+    query = query.orderBy("date", "desc").limit(500);
+
+    const snap = await query.get();
+    const items = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(items);
+  } catch (e) {
+    return actionError(e instanceof Error ? e.message : "Erro inesperado");
+  }
+}
+
+// ---------------------------------------------------------------------------
 // deleteCashFlowEntry
 // ---------------------------------------------------------------------------
 export async function deleteCashFlowEntry(

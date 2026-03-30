@@ -179,3 +179,25 @@ export async function adjustStock(input: {
     return actionError(e instanceof Error ? e.message : "Erro inesperado");
   }
 }
+
+// ---------------------------------------------------------------------------
+// listStockEntries
+// ---------------------------------------------------------------------------
+export async function listStockEntries(): Promise<
+  ActionResult<Array<{ id: string } & Record<string, unknown>>>
+> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    const col = tenantCollection(tenantId, "stockEntries");
+    const snap = await col.orderBy("createdAt", "desc").limit(500).get();
+
+    const entries = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(entries);
+  } catch (e) {
+    return actionError(e instanceof Error ? e.message : "Erro inesperado");
+  }
+}

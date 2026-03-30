@@ -10,7 +10,7 @@ import {
   tenantCollection,
 } from "./db";
 import { getAuthenticatedUser } from "./utils";
-import { calculateSheetCost, calculateProfitMargin } from "./helpers";
+import { calculateSheetCost, calculateProfitMargin } from "./db";
 
 // ---------------------------------------------------------------------------
 // Products
@@ -419,6 +419,54 @@ export async function recalcAllCosts(): Promise<
   } catch (err) {
     return actionError(
       err instanceof Error ? err.message : "Erro ao recalcular custos",
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// listProducts
+// ---------------------------------------------------------------------------
+export async function listProducts(): Promise<
+  ActionResult<Array<{ id: string } & Record<string, unknown>>>
+> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    const col = tenantCollection(tenantId, "products");
+    const snap = await col.orderBy("createdAt", "desc").limit(500).get();
+
+    const products = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(products);
+  } catch (err) {
+    return actionError(
+      err instanceof Error ? err.message : "Erro ao listar produtos",
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// listTechnicalSheets
+// ---------------------------------------------------------------------------
+export async function listTechnicalSheets(): Promise<
+  ActionResult<Array<{ id: string } & Record<string, unknown>>>
+> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    const col = tenantCollection(tenantId, "technicalSheets");
+    const snap = await col.orderBy("createdAt", "desc").limit(500).get();
+
+    const sheets = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(sheets);
+  } catch (err) {
+    return actionError(
+      err instanceof Error ? err.message : "Erro ao listar fichas técnicas",
     );
   }
 }

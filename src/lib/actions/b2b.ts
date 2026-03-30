@@ -9,7 +9,7 @@ import {
   tenantCollection,
 } from "./db";
 import { getAuthenticatedUser } from "./utils";
-import { calculateDueDate } from "./helpers";
+import { calculateDueDate } from "./db";
 
 // ---------------------------------------------------------------------------
 // B2B Catalog (public - takes tenantSlug instead of auth)

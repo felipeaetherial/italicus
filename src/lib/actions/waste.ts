@@ -196,3 +196,48 @@ export async function deleteWasteEntry(
     return actionError(e instanceof Error ? e.message : "Erro inesperado");
   }
 }
+
+// ---------------------------------------------------------------------------
+// listWasteEntries
+// ---------------------------------------------------------------------------
+export async function listWasteEntries(
+  filters?: {
+    startDate?: string;
+    endDate?: string;
+    type?: string;
+    reason?: string;
+  },
+): Promise<ActionResult<Array<{ id: string } & Record<string, unknown>>>> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    let query: FirebaseFirestore.Query = tenantCollection(
+      tenantId,
+      "wasteEntries",
+    );
+
+    if (filters?.type) {
+      query = query.where("type", "==", filters.type);
+    }
+    if (filters?.reason) {
+      query = query.where("reason", "==", filters.reason);
+    }
+    if (filters?.startDate) {
+      query = query.where("createdAt", ">=", filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.where("createdAt", "<=", filters.endDate + "\uf8ff");
+    }
+
+    query = query.orderBy("createdAt", "desc").limit(500);
+
+    const snap = await query.get();
+    const entries = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(entries);
+  } catch (e) {
+    return actionError(e instanceof Error ? e.message : "Erro inesperado");
+  }
+}

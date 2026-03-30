@@ -8,12 +8,12 @@ import {
   actionError,
   nowISO,
   tenantCollection,
+  calculateDueDate,
 } from "./db";
 import { getAuthenticatedUser } from "./utils";
 import {
   debitIngredients,
   revertIngredients,
-  calculateDueDate,
 } from "./helpers";
 
 // ---------------------------------------------------------------------------
@@ -489,6 +489,48 @@ export async function cancelSale(
 
     await batch.commit();
     return actionResponse({ id });
+  } catch (e) {
+    return actionError(e instanceof Error ? e.message : "Erro inesperado");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// listSales
+// ---------------------------------------------------------------------------
+export async function listSales(
+  filters?: {
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    paymentMethod?: string;
+  },
+): Promise<ActionResult<Array<{ id: string } & Record<string, unknown>>>> {
+  try {
+    const { tenantId } = await getAuthenticatedUser();
+    let query: FirebaseFirestore.Query = tenantCollection(tenantId, "sales");
+
+    if (filters?.status) {
+      query = query.where("status", "==", filters.status);
+    }
+    if (filters?.paymentMethod) {
+      query = query.where("paymentMethod", "==", filters.paymentMethod);
+    }
+    if (filters?.startDate) {
+      query = query.where("createdAt", ">=", filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.where("createdAt", "<=", filters.endDate + "\uf8ff");
+    }
+
+    query = query.orderBy("createdAt", "desc").limit(500);
+
+    const snap = await query.get();
+    const sales = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return actionResponse(sales);
   } catch (e) {
     return actionError(e instanceof Error ? e.message : "Erro inesperado");
   }

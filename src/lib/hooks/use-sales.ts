@@ -1,0 +1,40 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { listSales } from "@/lib/actions/sales";
+
+interface SalesFilters {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  paymentMethod?: string;
+}
+
+export function useSales(filters?: SalesFilters) {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await listSales(filters);
+      if (result.success) {
+        setData(result.data);
+      } else {
+        setError(result.error);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao carregar dados");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters?.startDate, filters?.endDate, filters?.status, filters?.paymentMethod]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { data, loading, error, refetch: fetch };
+}
